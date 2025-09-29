@@ -1,43 +1,46 @@
 {
   "name": "fx-news-analyzer",
-  "version": "1.0.0",
-  "description": "A news and FX market data analyzer with TradingView integration",
-  "type": "module",
+  "version": "2.0.0",
+  "description": "Real-time FX market data and news analysis with minimalist UI",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "deploy": "vercel",
+    "test:api": "node scripts/test-api.js"
+  },
+  "dependencies": {
+    "chrome-aws-lambda": "^10.1.0",
+    "next": "^14.0.0",
+    "playwright-core": "^1.40.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "19.1.15",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anansitrading/fx-news-analyzer.git"
   },
   "keywords": [
     "forex",
     "trading",
     "news",
+    "real-time",
     "market-data",
-    "react",
-    "typescript"
+    "tradingview",
+    "financial-analysis"
   ],
-  "author": "David",
-  "license": "MIT",
-  "dependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
-    "axios": "^1.12.2",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.544.0",
-    "playwright": "^1.55.1",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "rss-parser": "^3.13.0"
-  },
-  "devDependencies": {
-    "@types/node": "^24.5.2",
-    "@types/react": "^19.1.15",
-    "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^5.0.4",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13",
-    "typescript": "^5.9.2",
-    "vite": "^7.1.7"
-  }
+  "author": "David (Anansi Trading)",
+  "license": "MIT"
 }

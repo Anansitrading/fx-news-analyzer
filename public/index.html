@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FX News Analyzer — Real-time Market Data</title>
+  <style>
+    /* ------------- Design System ------------- */
+    :root{
+      --bg: #0b1220;
+      --bg-grad: radial-gradient(1200px 600px at 10% -10%, #1a2a4a40, transparent),
+                 radial-gradient(1000px 500px at 110% 10%, #24355633, transparent),
+                 linear-gradient(180deg, #0b1220, #0b1220);
+      --panel: #111a2c;
+      --panel-2:#0f1728;
+      --text: #e7eefc;
+      --muted: #a6b4cf;
+      --faint:#7e8aa3;
+      --primary:#4cc9f0;
+      --success:#2be56c;
+      --warning:#ffd166;
+      --danger:#ff6161;
+      --chip:#1a2338;
+      --outline: 1px solid rgba(255,255,255,.06);
+      --shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --blur: blur(10px);
+      --card-glass: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      --green-weak:#1f8948;
+      --yellow-weak:#8a6d1a;
+      --red-weak:#8a1f1f;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root{
+        --bg:#f7f9fd;
+        --bg-grad: radial-gradient(1200px 600px at -10% -10%, #dfe8ff, transparent),
+                   radial-gradient(1000px 500px at 110% 10%, #eaf2ff, transparent),
+                   linear-gradient(180deg, #f7f9fd, #f7f9fd);
+        --panel:#ffffff;
+        --panel-2:#ffffff;
+        --text:#0e1422;
+        --muted:#41506a;
+        --faint:#6a7b98;
+        --chip:#f0f4ff;
+        --outline: 1px solid rgba(13,18,34,.08);
+        --shadow: 0 10px 30px rgba(13,18,34,.08), inset 0 1px 0 rgba(255,255,255,.9);
+        --card-glass: linear-gradient(180deg, rgba(255,255,255,1), rgba(255,255,255,.9));
+      }
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: var(--bg-grad);
+      background-attachment: fixed;
+      letter-spacing:.2px;
+    }
+
+    /* ------------- Layout ------------- */
+    .app{
+      display:grid;
+      grid-template-columns: 280px 1fr 360px;
+      gap:18px;
+      padding:20px;
+      max-width: 1600px;
+      margin:0 auto;
+    }
+    header.appbar{
+      grid-column: 1 / -1;
+      background: var(--panel);
+      border: var(--outline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      position: sticky;
+      top: 12px;
+      backdrop-filter: var(--blur);
+      z-index: 10;
+    }
+    .title{
+      display:flex; align-items:center; gap:12px;
+      font-weight:800; letter-spacing:.4px; font-size:18px;
+    }
+    .title .pill{
+      font-size:12px; padding:4px 8px; border-radius:999px;
+      background: var(--chip); border: var(--outline); color: var(--muted);
+    }
+    .actions{display:flex; gap:8px; align-items:center}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:10px;
+      border: var(--outline);
+      color:var(--text);
+      background: var(--panel-2);
+      box-shadow: var(--shadow);
+      cursor:pointer; user-select:none;
+      transition: all .18s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn.primary{ background: linear-gradient(180deg, #54d6ff, #3fb6db); color:#02131b; border-color: transparent; }
+    .btn.ghost{ background: transparent; }
+    .dot{ width:8px; height:8px; border-radius:999px; background:var(--success); box-shadow:0 0 0 4px rgba(43,229,108,.12); }
+    .dot.error{ background:var(--danger); box-shadow:0 0 0 4px rgba(255,97,97,.12); }
+    .status{ display:flex; align-items:center; gap:10px; color:var(--muted); }
+
+    /* ------------- Panels ------------- */
+    .panel{
+      background: var(--panel);
+      border: var(--outline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .panel h3{
+      margin:0 0 10px; font-size:14px; color:var(--muted); font-weight:700; letter-spacing:.35px;
+    }
+
+    /* ------------- Watchlist ------------- */
+    .watchlist{ display:flex; flex-direction:column; gap:10px; }
+    .watchlist .add{
+      display:flex; gap:8px;
+    }
+    .input{
+      flex:1; padding:10px 12px; border-radius:10px; border: var(--outline); background: var(--panel-2); color:var(--text);
+      outline:none; box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      background: var(--chip); border: var(--outline); color: var(--text);
+      padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px;
+      cursor:pointer; transition: all .15s ease;
+    }
+    .chip:hover{ transform: translateY(-1px); }
+    .chip.selected{ outline: 2px solid var(--primary); box-shadow: 0 0 0 6px rgba(76,201,240,.12); }
+    .chip .pulse{ width:6px; height:6px; border-radius:50%; background:var(--success); box-shadow:0 0 0 6px rgba(43,229,108,.12); }
+    .list{ display:flex; flex-wrap:wrap; gap:8px; }
+    .sym{ display:flex; align-items:center; gap:10px; justify-content:space-between;
+      padding:8px 10px; border-radius:10px; border: var(--outline); background: var(--panel-2); }
+    .sym b{ letter-spacing:.6px }
+    .sym small{ color:var(--faint) }
+
+    /* ------------- Filters ------------- */
+    .filters{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;
+    }
+    .toggle{
+      border: var(--outline);
+      background: var(--panel-2); color: var(--text);
+      padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px;
+      cursor:pointer; user-select:none; display:flex; align-items:center; gap:8px;
+      transition: all .15s ease;
+    }
+    .toggle:hover{ transform: translateY(-1px); }
+    .toggle[data-active="true"]{ outline: 2px solid var(--primary); box-shadow: 0 0 0 6px rgba(76,201,240,.12) }
+    .sep{ flex:1 }
+
+    /* ------------- Traffic Light Badge ------------- */
+    .currency-badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      background: var(--chip); border: var(--outline);
+      font-weight:800; letter-spacing:.4px; font-size:12px;
+      cursor:pointer; transition: all .15s ease;
+    }
+    .currency-badge:hover{ transform: translateY(-1px); }
+    .traffic-light{
+      width:16px; height:30px; border-radius:8px; padding:3px;
+      display:grid; grid-template-rows:1fr 1fr 1fr; gap:3px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border: var(--outline);
+    }
+    .light{ border-radius:50%; filter:saturate(1.2); opacity:.35; transition: all .2s ease; }
+    .light.high{ background: var(--danger); }
+    .light.medium{ background: var(--warning); }
+    .light.low{ background: var(--success); }
+
+    .traffic-light[data-impact="HIGH"] .high{ opacity:1; box-shadow:0 0 10px rgba(255,97,97,.6)}
+    .traffic-light[data-impact="MEDIUM"] .medium{ opacity:1; box-shadow:0 0 10px rgba(255,209,102,.6)}
+    .traffic-light[data-impact="LOW"] .low{ opacity:1; box-shadow:0 0 10px rgba(43,229,108,.6)}
+
+    .impact-tag{
+      display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:8px;
+      border: var(--outline);
+      font-size:11px; font-weight:800; letter-spacing:.3px; color:#061015;
+    }
+    .impact-HIGH{ background: linear-gradient(180deg,#ff7c7c,#ff6161); }
+    .impact-MEDIUM{ background: linear-gradient(180deg,#ffe59a,#ffd166); }
+    .impact-LOW{ background: linear-gradient(180deg,#63f08f,#2be56c); }
+
+    /* ------------- News ------------- */
+    .news{ display:flex; flex-direction:column; gap:12px; }
+    .card{
+      background: var(--panel);
+      border: var(--outline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px;
+      display:grid; grid-template-columns: 1fr auto;
+      gap:10px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .card:hover{ transform: translateY(-2px) }
+    .card h4{ margin: 0 0 6px 0; font-size:16px; line-height:1.3 }
+    .meta{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:12px }
+    .badges{ display:flex; flex-wrap:wrap; gap:8px; }
+    .card .right{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+    .card p{ margin:8px 0 0; color: var(--muted) }
+    .src{ padding:4px 8px; border-radius:8px; background: var(--chip); border: var(--outline); color: var(--faint); font-weight:700; font-size:11px }
+
+    /* ------------- Market Snapshot ------------- */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .tile{
+      background: var(--panel);
+      border: var(--outline);
+      border-radius: var(--radius-sm);
+      padding:10px; display:flex; align-items:center; justify-content:space-between; gap:8px;
+      box-shadow: var(--shadow);
+      cursor:pointer; transition: transform .15s ease;
+    }
+    .tile:hover{ transform: translateY(-1px); }
+    .tile.selected{ outline: 2px solid var(--primary); box-shadow: 0 0 0 6px rgba(76,201,240,.12); }
+    .pair{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .pair b{ letter-spacing:.6px }
+    .pair small{ color:var(--faint) }
+    .chg.up{ color: var(--success) }
+    .chg.down{ color: var(--danger) }
+    .spark{ width:100px; height:36px }
+    .legend{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:12px; margin-top:8px }
+
+    /* ------------- Loading States ------------- */
+    .loading{
+      display:flex; align-items:center; gap:10px; color:var(--muted); padding:20px;
+      justify-content:center;
+    }
+    .spinner{
+      width:16px; height:16px; border:2px solid var(--muted); border-top-color:var(--primary);
+      border-radius:50%; animation: spin 1s linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+
+    /* ------------- Footer ------------- */
+    .foot{ grid-column: 1 / -1; text-align:center; color:var(--faint); font-size:12px; padding:10px 0 20px }
+
+    /* ------------- Responsive ------------- */
+    @media (max-width: 1200px){
+      .app{ grid-template-columns: 260px 1fr; }
+      .right-col{ display:none }
+    }
+    @media (max-width: 760px){
+      .app{ grid-template-columns: 1fr; padding:14px; gap:12px }
+      header.appbar{ position: static }
+    }
+
+    /* ------------- Utility ------------- */
+    .row{ display:flex; align-items:center; gap:8px; }
+    .muted{ color:var(--muted) }
+    .divider{ height:1px; background: rgba(255,255,255,.06); margin: 6px 0 2px }
+    .hidden{ display:none !important }
+    .nowrap{ white-space:nowrap }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
+  </style>
+</head>
+<body>
+  <main class="app" role="application" aria-label="FX News Analyzer with real-time market data">
+
+    <!-- Top App Bar -->
+    <header class="appbar" aria-live="polite">
+      <div class="title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        FX News Analyzer
+        <span class="pill" id="statusPill">Connecting...</span>
+      </div>
+
+      <div class="actions">
+        <div class="status">
+          <span class="dot" id="statusDot" aria-hidden="true"></span>
+          <span id="lastUpdated">Initializing...</span>
+        </div>
+        <button class="btn" id="refreshBtn" title="Refresh data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11a8 8 0 1 1-1.86-5.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m20 4v7h-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Refresh
+        </button>
+        <button class="btn ghost" id="themeBtn" title="Toggle theme">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9A7 7 0 0 1 12 3Z" stroke="currentColor" stroke-width="2"/></svg>
+          Theme
+        </button>
+      </div>
+    </header>
+
+    <!-- Left: Watchlist & Filters -->
+    <section class="panel" aria-label="Watchlist and filters">
+      <h3>My Watchlist</h3>
+
+      <div class="watchlist">
+        <div class="add">
+          <input id="symbolInput" class="input" placeholder="Add symbol e.g., EURUSD" aria-label="Add FX symbol"/>
+          <button class="btn primary" id="addSymbolBtn" aria-label="Add symbol">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Add
+          </button>
+        </div>
+
+        <div id="watchlist" class="list" aria-live="polite"></div>
+      </div>
+
+      <div class="divider"></div>
+      <h3>Quick Filters</h3>
+      <div class="filters">
+        <button class="toggle" data-impact="all" data-active="true">All</button>
+        <button class="toggle" data-impact="HIGH"><span class="impact-tag impact-HIGH">HIGH</span></button>
+        <button class="toggle" data-impact="MEDIUM"><span class="impact-tag impact-MEDIUM">MEDIUM</span></button>
+        <button class="toggle" data-impact="LOW"><span class="impact-tag impact-LOW">LOW</span></button>
+        <span class="sep"></span>
+        <input id="searchInput" class="input" placeholder="Search news, symbols, sources…" aria-label="Search news" style="max-width:100%">
+      </div>
+
+      <div class="legend">
+        <div class="row">
+          <div class="traffic-light" data-impact="HIGH" aria-hidden="true">
+            <div class="light high"></div><div class="light medium"></div><div class="light low"></div>
+          </div>
+          <span>Traffic light shows market impact level</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center: News Feed -->
+    <section class="panel" aria-label="Real-time news feed">
+      <h3>Latest News</h3>
+      <div id="newsFeed" class="news" aria-live="polite">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>Loading real-time news...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Market Snapshot -->
+    <aside class="panel right-col" aria-label="FX market snapshot">
+      <h3>FX Market Data</h3>
+      <div id="marketGrid" class="grid" aria-live="polite">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>Loading market data...</span>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="chip"><span class="pulse"></span><span>Real-time updates</span></span>
+        <span class="muted">Updates every 30 seconds</span>
+      </div>
+    </aside>
+
+    <footer class="foot">
+      Real-time FX market data and news analysis • Not financial advice • For educational purposes only
+    </footer>
+  </main>
+
+  <script>
+    // ---------------------- Configuration ----------------------
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : '/api'; // Vercel API routes
+
+    // ---------------------- State Management ----------------------
+    let fxData = [];
+    let newsData = [];
+    let watchlistSymbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 'EURJPY', 'GBPJPY', 'EURGBP'];
+    let selectedSymbol = null;
+    let impactFilter = 'all';
+    let activeCurrencies = new Set();
+    let searchTerm = '';
+    let isLoading = false;
+    let lastUpdate = null;
+    let updateInterval = null;
+
+    // ---------------------- DOM References ----------------------
+    const elements = {
+      newsFeed: document.getElementById('newsFeed'),
+      marketGrid: document.getElementById('marketGrid'),
+      watchlist: document.getElementById('watchlist'),
+      lastUpdated: document.getElementById('lastUpdated'),
+      statusDot: document.getElementById('statusDot'),
+      statusPill: document.getElementById('statusPill'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      addSymbolBtn: document.getElementById('addSymbolBtn'),
+      symbolInput: document.getElementById('symbolInput'),
+      searchInput: document.getElementById('searchInput'),
+      themeBtn: document.getElementById('themeBtn')
+    };
+
+    // ---------------------- API Functions ----------------------
+    async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    }
+
+    async function fetchMarketData() {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE}/fx-data`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.data || [];
+      } catch (error) {
+        console.error('Failed to fetch market data:', error);
+        return [];
+      }
+    }
+
+    async function fetchNewsData() {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE}/news`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.news || [];
+      } catch (error) {
+        console.error('Failed to fetch news data:', error);
+        return [];
+      }
+    }
+
+    // ---------------------- Utility Functions ----------------------
+    function relTime(timestamp) {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      
+      if (seconds < 60) return `${seconds}s ago`;
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ${minutes % 60}m ago`;
+      return new Date(timestamp).toLocaleDateString();
+    }
+
+    function formatTimestamp() {
+      return new Date().toLocaleTimeString();
+    }
+
+    function extractCurrenciesFromSymbol(symbol) {
+      if (symbol.length !== 6) return [];
+      return [symbol.slice(0, 3), symbol.slice(3, 6)];
+    }
+
+    function createTrafficLight(impact) {
+      const tl = document.createElement('div');
+      tl.className = 'traffic-light';
+      tl.setAttribute('data-impact', impact);
+      tl.innerHTML = `
+        <div class="light high"></div>
+        <div class="light medium"></div>
+        <div class="light low"></div>
+      `;
+      return tl;
+    }
+
+    function createSparkline(values, width = 100, height = 36) {
+      if (!values || values.length < 2) return '';
+      
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = max - min || 1;
+      
+      const points = values.map((val, i) => {
+        const x = (i / (values.length - 1)) * width;
+        const y = height - ((val - min) / range) * height;
+        return `${x},${y}`;
+      }).join(' ');
+      
+      return `<polyline points="${points}" fill="none" stroke="currentColor" stroke-width="1.5"/>`;
+    }
+
+    // ---------------------- Rendering Functions ----------------------
+    function updateStatus(status, message) {
+      const dot = elements.statusDot;
+      const pill = elements.statusPill;
+      
+      dot.className = status === 'connected' ? 'dot' : 'dot error';
+      pill.textContent = message;
+      pill.className = `pill ${status !== 'connected' ? 'error' : ''}`;
+    }
+
+    function renderWatchlist() {
+      const container = elements.watchlist;
+      container.innerHTML = '';
+
+      // FX Pairs
+      const pairRow = document.createElement('div');
+      pairRow.className = 'list';
+      pairRow.style.marginBottom = '8px';
+      
+      watchlistSymbols.forEach(symbol => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.dataset.symbol = symbol;
+        chip.innerHTML = `<b>${symbol}</b>`;
+        chip.addEventListener('click', () => selectSymbol(symbol));
+        if (symbol === selectedSymbol) {
+          chip.classList.add('selected');
+        }
+        pairRow.appendChild(chip);
+      });
+      container.appendChild(pairRow);
+
+      // Currency Filters
+      const currencyRow = document.createElement('div');
+      currencyRow.className = 'list';
+      const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD'];
+      
+      currencies.forEach(currency => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.dataset.currency = currency;
+        chip.innerHTML = `<b>${currency}</b>`;
+        chip.addEventListener('click', () => toggleCurrencyFilter(currency));
+        if (activeCurrencies.has(currency)) {
+          chip.classList.add('selected');
+        }
+        currencyRow.appendChild(chip);
+      });
+      container.appendChild(currencyRow);
+    }
+
+    function renderMarketData() {
+      const container = elements.marketGrid;
+      
+      if (fxData.length === 0) {
+        container.innerHTML = '<div class="loading"><div class="spinner"></div><span>No market data available</span></div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      
+      fxData.forEach(item => {
+        const isUp = parseFloat(item.change) >= 0;
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.dataset.symbol = item.symbol;
+        
+        if (item.symbol === selectedSymbol) {
+          tile.classList.add('selected');
+        }
+        
+        const sparklineHtml = item.history ? 
+          `<svg class="spark" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
+            ${createSparkline(item.history)}
+           </svg>` : 
+          '<div class="spark"></div>';
+        
+        tile.innerHTML = `
+          <div class="pair">
+            <b>${item.symbol}</b>
+            <small class="muted">Bid ${parseFloat(item.bid).toFixed(5)} • Ask ${parseFloat(item.ask).toFixed(5)}</small>
+          </div>
+          ${sparklineHtml}
+          <div class="chg ${isUp ? 'up' : 'down'} nowrap">
+            ${isUp ? '+' : ''}${parseFloat(item.change).toFixed(2)}%
+          </div>
+        `;
+        
+        tile.addEventListener('click', () => selectSymbol(item.symbol));
+        container.appendChild(tile);
+      });
+    }
+
+    function renderNews() {
+      const container = elements.newsFeed;
+      
+      if (newsData.length === 0) {
+        container.innerHTML = '<div class="loading"><div class="spinner"></div><span>No news data available</span></div>';
+        return;
+      }
+
+      // Filter news
+      const filteredNews = newsData.filter(item => {
+        // Impact filter
+        if (impactFilter !== 'all' && item.impact !== impactFilter) return false;
+        
+        // Currency filter
+        if (activeCurrencies.size > 0) {
+          const itemCurrencies = item.currencies || [];
+          if (!itemCurrencies.some(cur => activeCurrencies.has(cur))) return false;
+        }
+        
+        // Symbol filter (if symbol selected)
+        if (selectedSymbol) {
+          const symbolCurrencies = extractCurrenciesFromSymbol(selectedSymbol);
+          const itemCurrencies = item.currencies || [];
+          if (!itemCurrencies.some(cur => symbolCurrencies.includes(cur))) return false;
+        }
+        
+        // Search filter
+        if (searchTerm) {
+          const searchable = [
+            item.title,
+            item.summary || item.description,
+            item.source,
+            ...(item.currencies || []),
+            ...(item.pairs || []),
+            ...(item.tags || [])
+          ].join(' ').toLowerCase();
+          
+          if (!searchable.includes(searchTerm.toLowerCase())) return false;
+        }
+        
+        return true;
+      });
+
+      // Sort by timestamp (newest first)
+      filteredNews.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      container.innerHTML = '';
+
+      if (filteredNews.length === 0) {
+        container.innerHTML = '<div class="muted" style="text-align: center; padding: 20px;">No news matches your filters.</div>';
+        return;
+      }
+
+      filteredNews.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.dataset.impact = item.impact;
+        
+        const currencies = item.currencies || [];
+        const badgesHtml = currencies.map(currency => `
+          <span class="currency-badge" title="Impact on ${currency}: ${item.impact}">
+            <div class="traffic-light" data-impact="${item.impact}">
+              <div class="light high"></div>
+              <div class="light medium"></div>
+              <div class="light low"></div>
+            </div>
+            <b>${currency}</b>
+          </span>
+        `).join('');
+        
+        card.innerHTML = `
+          <div>
+            <div class="meta">
+              <span class="src">${item.source || 'Unknown'}</span>
+              <span class="muted">${relTime(new Date(item.timestamp).getTime())}</span>
+            </div>
+            <h4>${item.title}</h4>
+            <div class="badges" aria-label="Impacted currencies">
+              ${badgesHtml}
+            </div>
+            <p>${item.summary || item.description || 'No summary available'}</p>
+          </div>
+          <div class="right">
+            <span class="impact-tag impact-${item.impact}">${item.impact}</span>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    // ---------------------- Event Handlers ----------------------
+    function selectSymbol(symbol) {
+      selectedSymbol = selectedSymbol === symbol ? null : symbol;
+      renderWatchlist();
+      renderMarketData();
+      renderNews();
+    }
+
+    function toggleCurrencyFilter(currency) {
+      if (activeCurrencies.has(currency)) {
+        activeCurrencies.delete(currency);
+      } else {
+        activeCurrencies.add(currency);
+      }
+      renderWatchlist();
+      renderNews();
+    }
+
+    async function refreshData() {
+      if (isLoading) return;
+      
+      isLoading = true;
+      elements.refreshBtn.disabled = true;
+      updateStatus('loading', 'Updating...');
+      
+      try {
+        const [marketResponse, newsResponse] = await Promise.all([
+          fetchMarketData(),
+          fetchNewsData()
+        ]);
+        
+        fxData = marketResponse;
+        newsData = newsResponse;
+        lastUpdate = Date.now();
+        
+        renderMarketData();
+        renderNews();
+        
+        elements.lastUpdated.textContent = `Updated ${formatTimestamp()}`;
+        updateStatus('connected', 'Connected');
+        
+      } catch (error) {
+        console.error('Failed to refresh data:', error);
+        updateStatus('error', 'Connection Error');
+        elements.lastUpdated.textContent = 'Update failed';
+      } finally {
+        isLoading = false;
+        elements.refreshBtn.disabled = false;
+      }
+    }
+
+    function addSymbol() {
+      const input = elements.symbolInput;
+      const symbol = input.value.toUpperCase().replace(/[^A-Z]/g, '');
+      
+      if (symbol.length !== 6) {
+        input.value = '';
+        input.placeholder = 'Invalid format (use 6 letters, e.g., EURUSD)';
+        setTimeout(() => {
+          input.placeholder = 'Add symbol e.g., EURUSD';
+        }, 3000);
+        return;
+      }
+      
+      if (!watchlistSymbols.includes(symbol)) {
+        watchlistSymbols.push(symbol);
+        renderWatchlist();
+      }
+      
+      input.value = '';
+    }
+
+    // ---------------------- Theme Toggle ----------------------
+    function toggleTheme() {
+      const isDark = document.documentElement.style.colorScheme !== 'light';
+      document.documentElement.style.colorScheme = isDark ? 'light' : 'dark';
+      
+      if (isDark) {
+        document.documentElement.classList.add('light-theme');
+      } else {
+        document.documentElement.classList.remove('light-theme');
+      }
+    }
+
+    // ---------------------- Event Listeners ----------------------
+    elements.refreshBtn.addEventListener('click', refreshData);
+    elements.addSymbolBtn.addEventListener('click', addSymbol);
+    elements.themeBtn.addEventListener('click', toggleTheme);
+
+    elements.symbolInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addSymbol();
+    });
+
+    elements.searchInput.addEventListener('input', (e) => {
+      searchTerm = e.target.value.trim();
+      renderNews();
+    });
+
+    // Impact filter buttons
+    document.querySelectorAll('.toggle[data-impact]').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.toggle[data-impact]').forEach(b => b.dataset.active = 'false');
+        button.dataset.active = 'true';
+        impactFilter = button.dataset.impact;
+        renderNews();
+      });
+    });
+
+    // ---------------------- Initialization ----------------------
+    async function initialize() {
+      updateStatus('connecting', 'Connecting...');
+      renderWatchlist();
+      
+      // Initial data load
+      await refreshData();
+      
+      // Set up periodic updates
+      updateInterval = setInterval(refreshData, 30000);
+      
+      // Update relative timestamps every minute
+      setInterval(() => {
+        renderNews();
+      }, 60000);
+    }
+
+    // Start the application
+    document.addEventListener('DOMContentLoaded', initialize);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (updateInterval) clearInterval(updateInterval);
+    });
+  </script>
+</body>
+</html>
