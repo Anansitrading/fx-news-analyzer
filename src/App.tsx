@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NewsItem, Watchlist as WatchlistType, MarketData } from './types';
 import { WatchlistService } from './services/watchlistService';
-import { TradingViewService } from './services/tradingViewService';
-import { NewsService } from './services/newsService';
+import { FXApiService } from './services/api/fxApiService';
+import { NewsApiService } from './services/api/newsApiService';
 import { useDataUpdates } from './hooks/useDataUpdates';
 import Watchlist from './components/Watchlist';
 import FXDataGrid from './components/FXDataGrid';
@@ -24,11 +24,8 @@ function App() {
 
   // Services
   const [watchlistService] = useState(() => WatchlistService.getInstance());
-  const [tradingViewService] = useState(() => new TradingViewService({
-    email: 'anansitrading@gmail.com',
-    password: 'Jack0FallTrade$'
-  }));
-  const [newsService] = useState(() => new NewsService());
+  const [fxApiService] = useState(() => new FXApiService());
+  const [newsApiService] = useState(() => new NewsApiService());
   const [autoUpdateEnabled] = useState(true);
 
   // Real-time data updates
@@ -52,9 +49,7 @@ function App() {
   useEffect(() => {
     initializeApp();
     return () => {
-      // Cleanup
-      tradingViewService.close();
-      newsService.close();
+      // Cleanup - no longer needed for API services
     };
   }, []);
 
@@ -66,11 +61,7 @@ function App() {
       const loadedWatchlist = watchlistService.getWatchlist();
       setWatchlist(loadedWatchlist);
       
-      // Initialize services
-      await Promise.all([
-        tradingViewService.initialize(),
-        newsService.initialize()
-      ]);
+      // No initialization needed for API services
       
       // Load initial data
       await Promise.all([
@@ -91,15 +82,8 @@ function App() {
     try {
       setMarketData(prev => ({ ...prev, status: 'CONNECTED' }));
       
-      // Authenticate with TradingView if not already done
-      if (!tradingViewService.isLoggedIn()) {
-        const authSuccess = await tradingViewService.authenticate();
-        if (!authSuccess) {
-          throw new Error('Failed to authenticate with TradingView');
-        }
-      }
-      
-      const fxData = await tradingViewService.getMultipleFXData(symbols);
+      // Use API service to fetch FX data
+      const fxData = await fxApiService.getFXData(symbols);
       
       setMarketData({
         fxPairs: fxData,
@@ -115,7 +99,7 @@ function App() {
 
   const loadNews = async () => {
     try {
-      const newsItems = await newsService.fetchRSSNews();
+      const newsItems = await newsApiService.fetchNews();
       setNews(newsItems);
     } catch (err) {
       console.error('Failed to load news:', err);
@@ -130,7 +114,7 @@ function App() {
         setWatchlist(updatedWatchlist);
         
         // Load data for the new symbol
-        const symbolData = await tradingViewService.getFXData(symbol);
+        const symbolData = await fxApiService.getSingleFXData(symbol);
         if (symbolData) {
           setMarketData(prev => ({
             ...prev,
