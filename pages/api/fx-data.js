@@ -105,9 +105,14 @@ async function scrapeFXData(symbols) {
           return { price, changePercent };
         });
 
-        // Generate realistic mock data if scraping failed
-        const basePrice = priceData.price || generateRealisticPrice(symbol);
-        const change = priceData.changePercent || ((Math.random() - 0.5) * 2);
+        // Skip if no real data
+        if (!priceData.price) {
+          console.error(`No price data for ${symbol}, skipping`);
+          continue;
+        }
+        
+        const basePrice = priceData.price;
+        const change = priceData.changePercent || 0;
         
         // Generate historical sparkline data
         const history = Array.from({length: 24}, (_, i) => {
@@ -132,19 +137,7 @@ async function scrapeFXData(symbols) {
 
       } catch (error) {
         console.error(`Error scraping ${symbol}:`, error.message);
-        
-        // Fallback to realistic mock data
-        const basePrice = generateRealisticPrice(symbol);
-        const change = ((Math.random() - 0.5) * 2);
-        
-        fxData.push({
-          symbol,
-          bid: (basePrice - 0.00005).toFixed(5),
-          ask: (basePrice + 0.00005).toFixed(5),
-          change: change.toFixed(2),
-          timestamp: new Date().toISOString(),
-          history: Array.from({length: 24}, () => change + (Math.random() - 0.5) * 1.5)
-        });
+        // Skip failed symbols - no mock data
       }
     }
 
@@ -159,22 +152,8 @@ async function scrapeFXData(symbols) {
 
   } catch (error) {
     console.error('Browser automation failed:', error);
-    
-    // Return mock data if everything fails
-    return symbols.map(symbol => {
-      const basePrice = generateRealisticPrice(symbol);
-      const change = ((Math.random() - 0.5) * 2);
-      
-      return {
-        symbol,
-        bid: (basePrice - 0.00005).toFixed(5),
-        ask: (basePrice + 0.00005).toFixed(5),
-        change: change.toFixed(2),
-        timestamp: new Date().toISOString(),
-        history: Array.from({length: 24}, () => change + (Math.random() - 0.5) * 1.5),
-        isMockData: true
-      };
-    });
+    // Return empty array if scraping fails - no mock data
+    return [];
   } finally {
     if (browser) {
       try {
@@ -186,26 +165,7 @@ async function scrapeFXData(symbols) {
   }
 }
 
-function generateRealisticPrice(symbol) {
-  // Generate realistic base prices for major FX pairs
-  const basePrices = {
-    'EURUSD': 1.0850,
-    'GBPUSD': 1.2650,
-    'USDJPY': 149.80,
-    'USDCHF': 0.9180,
-    'AUDUSD': 0.6720,
-    'USDCAD': 1.3580,
-    'NZDUSD': 0.6180,
-    'EURJPY': 162.50,
-    'GBPJPY': 189.40,
-    'EURGBP': 0.8580
-  };
-
-  const basePrice = basePrices[symbol] || 1.0000;
-  // Add some random variation (±2%)
-  const variation = (Math.random() - 0.5) * 0.04;
-  return basePrice * (1 + variation);
-}
+// Removed mock price generator - only real data
 
 export default async function handler(req, res) {
   // Handle CORS

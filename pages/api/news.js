@@ -65,9 +65,9 @@ async function fetchAndProcessNews() {
     try {
       feed = await parser.parseURL('https://financialjuice.com/feed.ashx?xy=rss');
     } catch (error) {
-      console.log('Financial Juice feed failed, trying alternative...');
-      // Fallback to mock news if RSS fails
-      feed = generateMockNews();
+      console.error('Financial Juice RSS feed failed:', error);
+      // Return empty if RSS fails - no mock data
+      return [];
     }
 
     const processedNews = [];
@@ -92,16 +92,8 @@ async function fetchAndProcessNews() {
 
   } catch (error) {
     console.error('Error fetching news:', error);
-    
-    // Return mock news if everything fails
-    const mockNews = generateMockNewsItems();
-    newsCache = {
-      data: mockNews,
-      lastUpdate: now,
-      CACHE_DURATION: newsCache.CACHE_DURATION
-    };
-    
-    return mockNews;
+    // Return empty array if everything fails - no mock data
+    return [];
   }
 }
 
@@ -229,97 +221,7 @@ function generateId(title) {
   return title.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 30);
 }
 
-function generateMockNews() {
-  return {
-    items: [
-      {
-        title: 'Fed Officials Signal Potential Rate Cuts in 2024',
-        contentSnippet: 'Federal Reserve officials indicate potential for interest rate cuts as inflation shows signs of cooling.',
-        pubDate: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        link: 'https://example.com/fed-rate-cuts'
-      },
-      {
-        title: 'ECB Maintains Hawkish Stance Despite Growth Concerns',
-        contentSnippet: 'European Central Bank officials emphasize continued vigilance on inflation despite slowing economic growth.',
-        pubDate: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-        link: 'https://example.com/ecb-hawkish'
-      },
-      {
-        title: 'UK Retail Sales Show Unexpected Strength',
-        contentSnippet: 'British retail sales data comes in above expectations, supporting pound strength against major currencies.',
-        pubDate: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-        link: 'https://example.com/uk-retail'
-      }
-    ]
-  };
-}
-
-function generateMockNewsItems() {
-  const mockItems = [
-    {
-      id: 'fed-signals-rate-cuts',
-      title: 'Fed Officials Signal Potential Rate Cuts in Q2 2024',
-      summary: 'Federal Reserve officials indicate cuts may be considered as inflation cools; front-end yields drop and dollar softens.',
-      source: 'Financial Juice',
-      timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-      impact: 'HIGH',
-      currencies: ['USD'],
-      pairs: ['EURUSD', 'GBPUSD', 'USDJPY'],
-      tags: ['Fed', 'Rates', 'Monetary Policy'],
-      link: ''
-    },
-    {
-      id: 'ecb-maintains-hawkish',
-      title: 'ECB Maintains Hawkish Stance Despite Growth Concerns',
-      summary: 'ECB speakers lean restrictive; EUR holds gains against CHF and GBP.',
-      source: 'Financial Juice',
-      timestamp: new Date(Date.now() - 1000 * 60 * 47).toISOString(),
-      impact: 'MEDIUM',
-      currencies: ['EUR'],
-      pairs: ['EURUSD', 'EURCHF', 'EURGBP'],
-      tags: ['ECB', 'Inflation'],
-      link: ''
-    },
-    {
-      id: 'boj-yen-whipsaws',
-      title: 'BoJ Allows More Flexibility on YCC, Yen Whipsaws',
-      summary: 'Band widened, officials stress patience; option vols spike on JPY crosses.',
-      source: 'Nikkei (mock)',
-      timestamp: new Date(Date.now() - 1000 * 60 * 7).toISOString(),
-      impact: 'HIGH',
-      currencies: ['JPY'],
-      pairs: ['USDJPY', 'EURJPY', 'GBPJPY'],
-      tags: ['BoJ', 'YCC'],
-      link: ''
-    },
-    {
-      id: 'australian-retail-miss',
-      title: 'Australian Retail Sales Miss; AUD Slips',
-      summary: 'Soft consumer spending prints; AUD underperforms vs NZD and USD.',
-      source: 'Financial Juice',
-      timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      impact: 'LOW',
-      currencies: ['AUD'],
-      pairs: ['AUDUSD', 'AUDNZD'],
-      tags: ['Retail Sales', 'Australia'],
-      link: ''
-    },
-    {
-      id: 'oil-rally-cad',
-      title: 'Oil Rally Lifts CAD; USD/CAD Tests 1.35',
-      summary: 'Crude pops on supply headlines; CAD bid across the board.',
-      source: 'Energy Desk (mock)',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      impact: 'MEDIUM',
-      currencies: ['CAD'],
-      pairs: ['USDCAD', 'EURCAD', 'GBPCAD'],
-      tags: ['Oil', 'Canada'],
-      link: ''
-    }
-  ];
-
-  return mockItems;
-}
+// Removed all mock news generators - only real RSS data
 
 export default async function handler(req, res) {
   // Handle CORS
