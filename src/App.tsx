@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FXPair, NewsItem, Watchlist, MarketData } from './types';
+import { useState, useEffect } from 'react';
+import { NewsItem, Watchlist as WatchlistType, MarketData } from './types';
 import { WatchlistService } from './services/watchlistService';
 import { TradingViewService } from './services/tradingViewService';
 import { NewsService } from './services/newsService';
@@ -11,7 +11,7 @@ import Header from './components/Header';
 import { Activity } from 'lucide-react';
 
 function App() {
-  const [watchlist, setWatchlist] = useState<Watchlist | null>(null);
+  const [watchlist, setWatchlist] = useState<WatchlistType | null>(null);
   const [marketData, setMarketData] = useState<MarketData>({
     fxPairs: [],
     lastUpdated: '',
@@ -29,10 +29,10 @@ function App() {
     password: 'Jack0FallTrade$'
   }));
   const [newsService] = useState(() => new NewsService());
-  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(true);
+  const [autoUpdateEnabled] = useState(true);
 
   // Real-time data updates
-  const { isUpdating, lastUpdateTime, updateCount } = useDataUpdates({
+  useDataUpdates({
     enabled: autoUpdateEnabled && !isLoading,
     intervalMs: 30000, // Update every 30 seconds
     onUpdate: async () => {
@@ -141,7 +141,7 @@ function App() {
       }
     } catch (err) {
       console.error('Failed to add symbol:', err);
-      setError(`Failed to add symbol: ${err.message}`);
+      setError(`Failed to add symbol: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -182,17 +182,17 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className=\"min-h-screen bg-gray-50 flex items-center justify-center\">
-        <div className=\"text-center\">
-          <Activity className=\"h-8 w-8 animate-spin mx-auto mb-4 text-primary-600\" />
-          <p className=\"text-gray-600\">Loading FX News Analyzer...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Activity className="h-8 w-8 animate-spin mx-auto mb-4 text-primary-600" />
+          <p className="text-gray-600">Loading FX News Analyzer...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className=\"min-h-screen bg-gray-50\">
+    <div className="min-h-screen bg-gray-50">
       <Header 
         marketStatus={marketData.status}
         lastUpdated={marketData.lastUpdated}
@@ -200,21 +200,21 @@ function App() {
       />
       
       {error && (
-        <div className=\"mx-4 mt-4 p-4 bg-danger-50 border border-danger-200 rounded-md\">
-          <p className=\"text-danger-700\">{error}</p>
+        <div className="mx-4 mt-4 p-4 bg-danger-50 border border-danger-200 rounded-md">
+          <p className="text-danger-700">{error}</p>
           <button 
             onClick={() => setError(null)}
-            className=\"mt-2 text-sm text-danger-600 hover:text-danger-800\"
+            className="mt-2 text-sm text-danger-600 hover:text-danger-800"
           >
             Dismiss
           </button>
         </div>
       )}
       
-      <div className=\"container mx-auto px-4 py-6\">
-        <div className=\"grid grid-cols-1 lg:grid-cols-4 gap-6\">
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Watchlist Sidebar */}
-          <div className=\"lg:col-span-1\">
+          <div className="lg:col-span-1">
             <Watchlist
               watchlist={watchlist}
               onAddSymbol={handleAddSymbol}
@@ -224,7 +224,7 @@ function App() {
           </div>
           
           {/* Main Content */}
-          <div className=\"lg:col-span-2\">
+          <div className="lg:col-span-2">
             <FXDataGrid
               fxPairs={marketData.fxPairs}
               selectedSymbol={selectedSymbol}
@@ -234,7 +234,7 @@ function App() {
           </div>
           
           {/* News Panel */}
-          <div className=\"lg:col-span-1\">
+          <div className="lg:col-span-1">
             <NewsPanel
               news={selectedSymbol ? getNewsForSelectedSymbol() : news}
               selectedSymbol={selectedSymbol}

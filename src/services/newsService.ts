@@ -1,6 +1,6 @@
 import RSSParser from 'rss-parser';
 import { NewsItem } from '@/types';
-import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { chromium, Browser, BrowserContext } from 'playwright';
 
 interface RSSItem {
   title?: string;
@@ -17,7 +17,6 @@ export class NewsService {
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private readonly RSS_URL = 'https://www.financialjuice.com/feed.ashx?xy=rss';
-  private readonly FINANCIAL_JUICE_URL = 'https://financialjuice.com';
 
   // FX symbol keywords for news correlation
   private readonly FX_KEYWORDS = {
